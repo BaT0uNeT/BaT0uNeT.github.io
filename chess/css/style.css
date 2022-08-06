@@ -1,0 +1,98 @@
+body
+{
+    background-color: black;
+    margin: 0;
+}
+
+header
+{   
+    height: 60px;
+    background-color:sienna;
+    margin-bottom: 10px;
+}
+
+h1.title
+{   
+    margin-top: 0;
+    padding-top: 10px;
+
+    text-align: center;
+    color:burlywood;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    font-size:xx-large;
+    text-shadow: black 4px 4px;
+}
+
+
+div.board
+{   
+    background-color: rgb(93, 14, 14);
+
+    height: 642.5px;
+    width: 642.5px;
+    margin: auto;
+
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    /* grid-auto-rows: minmax(30px, auto);
+    grid-auto-columns: minmax(30, auto); */
+}
+
+/******************************** BORDER **************************************/
+
+
+div.border_up, div.border_down
+{
+    height: 30px;
+    width: 70px;
+}
+
+div.border_up, div.border_right
+{
+    rotate: 180deg;
+}
+
+div.border_right, div.border_left
+{
+    height: 70px;
+    width: 30px;
+}
+
+div.border_corner
+{
+    width: 30px;
+    height: 30px;
+}
+
+
+div#border
+{
+    font-weight: bold;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: rgb(249, 228, 183);
+    text-align: center;
+    
+    /* objets intérieurs au centre */
+    display: flex;
+    align-items:center;
+    justify-content: center;
+}
+
+/******************************** CASE **************************************/
+
+div#case
+{
+    width: 70px;
+    height: 70px;
+    border: solid 1.5px rgb(249, 228, 183);
+}
+
+div.case_color1
+{
+    background-color: rgb(249, 228, 183);
+}
+
+div.case_color2
+{
+    background-color: rgb(55, 0, 0);
+}
