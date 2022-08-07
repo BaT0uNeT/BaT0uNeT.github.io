@@ -38,8 +38,8 @@ div.board
     grid-auto-columns: minmax(30, auto); */
 }
 
-/******************************** BORDER **************************************/
 
+/******************************** BORDER **************************************/
 
 div.border_up, div.border_down
 {
@@ -64,7 +64,6 @@ div.border_corner
     height: 30px;
 }
 
-
 div#border
 {
     font-weight: bold;
@@ -78,16 +77,28 @@ div#border
     justify-content: center;
 }
 
+
 /******************************** CASE **************************************/
 
-div#case
+div[id^="case"] /*Contient le mot clé "case" en préfixe d'id*/
 {
     width: 70px;
     height: 70px;
-    border: solid 1.5px rgb(249, 228, 183);
+    /* border: solid 1.5px rgb(255, 202, 89); */
+    border: solid 1.5px rgb(93, 14, 14);
 }
 
-div.case_color1
+div[id^="case"] > img /*Toutes les images fils de div*/
+{
+    width: 65px;
+    height: 65px;
+    display: block;
+    margin: 3px auto;
+}
+
+/* Couleur 1 plus clair que la 2 */
+
+div.case_color1 
 {
     background-color: rgb(249, 228, 183);
 }
