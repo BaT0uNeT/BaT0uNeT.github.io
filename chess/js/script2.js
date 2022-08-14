@@ -18,9 +18,10 @@ class GameManager
 
     #state; //0 : select pieces | 1 : player chooses on which case he wants to go
     
-    #currentPiece; //case on which there is the piece (player clicks on)
-    #arrayMov; //cases where the piece can go | [elt, line, col]
-    #arraySpecialMov; //for rock or special movement of pawn | [line,col,nameMovement]
+    #currentPiece; //cases where the piece can go | [elt, line, col]
+    #pawnMovedOn2Cases; //contains the last pawn which moved 2 cases forward, in order to check PassantCapture
+    #arrayMov; //case on which there is the piece (player clicks on)
+    #arraySpecialMov; //for castling or special movement of pawn | [line,col,nameMovement]
 
     #board;
     #colorP1;
@@ -35,10 +36,12 @@ class GameManager
     #InitGame(cP1, cP2)
     {
         this.#numberTurns=1;
+        this.#canNextTurn=true;
         this.#colorP1=cP1;
         this.#colorP2=cP2;
         this.#playerTurn = cP1=='W' ? cP1 : cP2;
         this.#currentPiece=null;
+        this.#pawnMovedOn2Cases=null;
         this.#arrayMov=[]; 
         this.#arraySpecialMov=[];
         this.#InitBoard();
@@ -148,7 +151,7 @@ class GameManager
 
     #NextTurn()
     {
-        if (this.#canNextTurn) playerTurn=(playerTurn==colorP1) ? colorP2 : colorP1;
+        if (this.#canNextTurn) this.#playerTurn=(this.#playerTurn==this.#colorP1) ? this.#colorP2 : this.#colorP1;
     }
 
     #MovedPiece(eltInit, lineInit, colInit, eltDest, lineDest, colDest ) //move the node img and update Matrix | elt=html div
@@ -185,15 +188,21 @@ class GameManager
                 
                 switch (this.#arraySpecialMov[i][2])
                 {
-                    case ("RockLeft"): //the tower on the left of the king
+                    case ("CastlingLeft"): //the tower on the left of the king
                         futurCol= (line==0 ? col-1 : col+1);
                         initCol=(line==0 ? 7 : 0); 
                         this.#MovedPiece(document.getElementById("case"+line+"-"+initCol), line, initCol, document.getElementById("case"+line+"-"+futurCol), line, futurCol);
                         break;
-                    case ("RockRight"):
+
+                    case ("CastlingRight"):
                         initCol=(line==0 ? 0 : 7); 
                         futurCol= (line==0 ? col+1 : col-1);
                         this.#MovedPiece(document.getElementById("case"+line+"-"+initCol), line, initCol, document.getElementById("case"+line+"-"+futurCol), line, futurCol);
+                        break;
+
+                    case ("PassantCapture"):
+                        if (this.#pawnMovedOn2Cases[0].firstChild!=null)
+                            this.#pawnMovedOn2Cases[0].removeChild(this.#pawnMovedOn2Cases[0].firstChild);
                         break;
                     
                     default:
@@ -205,6 +214,15 @@ class GameManager
         
     }
 
+    #UpdatePawnMoved2Cases(elt, line, col) //Check if the pawn has moved forward on 2 cases (from the beginning line)
+    {
+        if (this.#board.GetCaseMatrix(line,col).slice(1)=="P" && Math.abs(line-this.#currentPiece[1])==2)
+            this.#pawnMovedOn2Cases=[elt, line, col];
+        else
+            this.#pawnMovedOn2Cases=null;
+        console.log(this.#currentPiece);
+        console.log(Math.abs(line-this.#currentPiece[1]));
+    }
 
     /***************************************************************************************************
      *****************************************GAME INTERACTIONS***************************************** 
@@ -226,6 +244,9 @@ class GameManager
             {
                 case ("P"):
                     this.#arrayMov=this.#board.GetMovementsPawn(line, col, this.#playerTurn);
+                    if (this.#pawnMovedOn2Cases!=null)
+                        this.#arraySpecialMov=this.#board.GetMovementsPassantCapture(line, col, this.#pawnMovedOn2Cases[1], this.#pawnMovedOn2Cases[2], this.#playerTurn);
+                    
                     break;
 
                 case ("R"):
@@ -246,7 +267,7 @@ class GameManager
 
                 case ("Ki"):
                     this.#arrayMov=this.#board.GetMovementsKing(line,col, this.#playerTurn);
-                    this.#arraySpecialMov=this.#board.GetMovementsRock(line,col, this.#playerTurn);
+                    this.#arraySpecialMov=this.#board.GetMovementsCastling(line,col, this.#playerTurn);
                     break;
             }
             if (this.#arrayMov.length!=0) //if there is at least one movement
@@ -269,8 +290,10 @@ class GameManager
             
             console.log("dest :"+this.#board.GetCaseMatrix(line,col));
             console.log("init :"+this.#board.GetCaseMatrix(this.#currentPiece[1],this.#currentPiece[2]));
-
-            this.#board.UpdateRock(this.#board.GetCaseMatrix(line,col).slice(1), this.#currentPiece[1], this.#currentPiece[2], this.#playerTurn);
+            
+            
+            this.#UpdatePawnMoved2Cases(elt,line,col);
+            this.#board.UpdateCastling(this.#board.GetCaseMatrix(line,col).slice(1), this.#currentPiece[1], this.#currentPiece[2], this.#playerTurn);
             this.#ResetPieceSelection();
             
             this.#NextTurn();
@@ -283,15 +306,4 @@ class GameManager
 document.addEventListener('DOMContentLoaded', (event) => {  
     let gm = new GameManager('W','B');
     gm.InitCasesEvents();
-
-    // Array.from(document.getElementsByClassName("case_color1")).forEach(elt => elt.addEventListener
-    //     ("click", function(){
-    //         gm.ClickOnCase(elt, elt.getAttribute("id").substr(4, 1), elt.getAttribute("id").slice(-1));
-    //     })
-    // );
-    // Array.from(document.getElementsByClassName("case_color2")).forEach(elt => elt.addEventListener
-    //     ("click", function(){
-    //         gm.ClickOnCase(elt, elt.getAttribute("id").substr(4, 1), elt.getAttribute("id").slice(-1));
-    //     })
-    // );
 });

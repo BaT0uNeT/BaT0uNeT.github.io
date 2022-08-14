@@ -7,20 +7,20 @@
 class Player
 {   
     #color; //'W' for white | 'B' for black
-    #canRockLeft;
-    #canRockRight;
+    #canCastlingLeft;
+    #canCastlingRight;
 
-    GetCanRockLeft() { return this.#canRockLeft; }
-    GetCanRockRight() { return this.#canRockRight; }
+    GetCanCastlingLeft() { return this.#canCastlingLeft; }
+    GetCanCastlingRight() { return this.#canCastlingRight; }
     GetColor() { return this.#color; }
-    SetCanRockLeft(val) { this.#canRockLeft=val; }
-    SetCanRockRight(val) { this.#canRockRight=val; }
-    CheckCanRock() { return this.#canRockLeft || this.#canRockRight; }
+    SetCanCastlingLeft(val) { this.#canCastlingLeft=val; }
+    SetCanCastlingRight(val) { this.#canCastlingRight=val; }
+    CheckCanCastling() { return this.#canCastlingLeft || this.#canCastlingRight; }
 
     InitPlayer(color)
     {
-        this.#canRockLeft=true;
-        this.#canRockRight=true;
+        this.#canCastlingLeft=true;
+        this.#canCastlingRight=true;
         this.#color=color;
     }
 }
@@ -78,33 +78,33 @@ export class Board
     }
 
 
-    UpdateRock(namePiece, line, col, currentPlayer) //Check if the player still can do a rock after his movement with the piece namePiece from the case [line,col]
+    UpdateCastling(namePiece, line, col, currentPlayer) //Check if the player still can do a castling after his movement with the piece namePiece from the case [line,col]
     {   
-        if (namePiece.localeCompare("Ki")==0) //the player has moved the king but he was able to do the rock before, so now he cannot
+        if (namePiece.localeCompare("Ki")==0) //the player has moved the king but he was able to do the Castling before, so now he cannot
         {   
-            if (currentPlayer==this.#player1.GetColor() && (this.#player1.CheckCanRock())) 
+            if (currentPlayer==this.#player1.GetColor() && (this.#player1.CheckCanCastling())) 
             { 
-                this.#player1.SetCanRockLeft(false); 
-                this.#player1.SetCanRockRight(false) 
+                this.#player1.SetCanCastlingLeft(false); 
+                this.#player1.SetCanCastlingRight(false) 
             }
-            else if (currentPlayer==this.#player2.GetColor() && (this.#player2.CheckCanRock())) 
+            else if (currentPlayer==this.#player2.GetColor() && (this.#player2.CheckCanCastling())) 
             { 
-                this.#player2.SetCanRockLeft(false); 
-                this.#player2.SetCanRockRight(false) 
+                this.#player2.SetCanCastlingLeft(false); 
+                this.#player2.SetCanCastlingRight(false) 
             }
         }
-        else if (namePiece.localeCompare("R")==0 && ( (currentPlayer==this.#player1.GetColor() && this.#player1.CheckCanRock()) || 
-            (currentPlayer==this.#player2.GetColor() && this.#player2.CheckCanRock()) ) ) 
+        else if (namePiece.localeCompare("R")==0 && ( (currentPlayer==this.#player1.GetColor() && this.#player1.CheckCanCastling()) || 
+            (currentPlayer==this.#player2.GetColor() && this.#player2.CheckCanCastling()) ) ) 
         {   //check if it concerns the left or right rook
             if ((line==0 && col==7) || (line==7 && col==0))//left
             {   
-                if (currentPlayer==this.#player1.GetColor() && this.#player1.GetCanRockLeft()) this.#player1.SetCanRockLeft(false);
-                if (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanRockLeft()) this.#player2.SetCanRockLeft(false);
+                if (currentPlayer==this.#player1.GetColor() && this.#player1.GetCanCastlingLeft()) this.#player1.SetCanCastlingLeft(false);
+                if (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanCastlingLeft()) this.#player2.SetCanCastlingLeft(false);
             }
             else if ((line==0 && col==0) || (line==7 && col==7)) //Right
             {
-                if (currentPlayer==this.#player1.GetColor() && this.#player1.GetCanRockRight()) this.#player1.SetCanRockRight(false);
-                if (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanRockRight()) this.#player2.SetCanRockRight(false);
+                if (currentPlayer==this.#player1.GetColor() && this.#player1.GetCanCastlingRight()) this.#player1.SetCanCastlingRight(false);
+                if (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanCastlingRight()) this.#player2.SetCanCastlingRight(false);
             }
         }
     }
@@ -202,25 +202,33 @@ export class Board
         return listMov;
     }
 
-    GetMovementsRock(line,col,currentPlayer) //only when player selects the king
+    GetMovementsCastling(line,col,currentPlayer) //only when player selects the king
     {   
         let listMov = new Array();
         //Check if the cases on the left or right are availables (no piece)
-        //Situation changes if queen is on the side of the rock
+        //Situation changes if queen is on the side of the Castling
 
-        if ( ((currentPlayer==this.#player1.GetColor() && this.#player1.GetCanRockLeft()) || (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanRockLeft())) //current player can rock on the left
+        if ( ((currentPlayer==this.#player1.GetColor() && this.#player1.GetCanCastlingLeft()) || (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanCastlingLeft())) //current player can castling on the left
             && ( (line==0 && this.#matrix[line][5]=="" && this.#matrix[line][6]=="" && (col==4 ? true : this.#matrix[line][4]=="") ) 
                 || (line==7 && this.#matrix[line][2]=="" && this.#matrix[line][1]=="" && (col==4 ? this.#matrix[line][3]=="" : true)  ) ) ) 
         {   
-            listMov.push( [line, (line==0 ? (col==4 ?  6 : 5) : (col==4 ?  2 : 1)), "RockLeft"]);
+            listMov.push( [line, (line==0 ? (col==4 ?  6 : 5) : (col==4 ?  2 : 1)), "CastlingLeft"]);
         }   
-        if ( ((currentPlayer==this.#player1.GetColor() && this.#player1.GetCanRockRight()) || (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanRockRight())) //current player can rock on the right
+        if ( ((currentPlayer==this.#player1.GetColor() && this.#player1.GetCanCastlingRight()) || (currentPlayer==this.#player2.GetColor() && this.#player2.GetCanCastlingRight())) //current player can castling on the right
             && ( (line==0 && this.#matrix[line][2]=="" && this.#matrix[line][1]=="" && (col==4 ? this.#matrix[line][3]=="" : true) ) 
                 || (line==7 && this.#matrix[line][5]=="" && this.#matrix[line][6]=="" && (col==4 ? true : this.#matrix[line][4]=="") ) ) ) 
         {   
-            listMov.push( [line, (line==0 ? (col==4 ?  2 : 1) : (col==4 ?  6 : 5)), "RockRight"]);
+            listMov.push( [line, (line==0 ? (col==4 ?  2 : 1) : (col==4 ?  6 : 5)), "CastlingRight"]);
         }
         return listMov;
     }
 
+    GetMovementsPassantCapture(line, col, lineOtherPawn, colOtherPawn, currentPlayer)
+    {   
+        let k=currentPlayer==this.#player2.GetColor() ? 1 : -1;                                                             //Next to each other
+        if (this.CheckMovementOnBoard(lineOtherPawn+1*k,colOtherPawn) && this.#matrix[lineOtherPawn+1*k][colOtherPawn]=="" 
+            && Math.abs(col-colOtherPawn)==1 && Math.abs(line-lineOtherPawn)==0)
+            return [[lineOtherPawn+1*k,colOtherPawn,"PassantCapture"]];
+        return [];
+    }
 }
