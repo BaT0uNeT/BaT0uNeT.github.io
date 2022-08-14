@@ -5,7 +5,8 @@
 var colorP1 = 'W'; //Bottom player
 var colorP2 = 'B'; //Top player
 var numberTurns = 1; //Game starts with the turn 1
-var playerTurn = colorP1=='W' ? colorP1 : colorP2; //who is playing currently | White starts
+var canNextTurn;
+var playerTurn; //who is playing currently | White starts
 
 var matrix;
 
@@ -17,6 +18,10 @@ var rgbColorPossibleMov;
 
 var currentPiece; //case on which there is the piece (player clicks on)
 var arrayMov; //cases where the piece can go | [elt, line, col]
+var arraySpecialMov; //for rock or special movement of pawn | [line,col,nameMovement]
+
+var p1CanRockLeft, p1CanRockRight; //the player hasn't moved its king or its rook yet || this doesn't check if the cases between king and rook are available
+var p2CanRockLeft, p2CanRockRight;
 
 
 /***************************************************************************************************
@@ -32,7 +37,10 @@ function InitVariables()
     rgbColorCaseSelect="rgb(255, 235, 0)";
     rgbColorPossibleMov="rgb(255, 0, 0)";
     currentPiece=null;
-    arrayMov=[];
+    arrayMov=[]; arraySpecialMov=[];
+    p1CanRockLeft=true; p1CanRockRight=true;
+    p2CanRockLeft=true; p2CanRockRight=true;
+    canNextTurn=true;
 
     //Init matrix
     matrix = [
@@ -98,7 +106,7 @@ function InitCase(color, line, col)
             
             default :
                 //if the color is the same as the argument, we place the queen | else it is the king
-                str = (elt.getAttribute("class").slice("-1").localeCompare((color=='W') ? '1' : '2' )) ? "Ki" : "Q";
+                str = (elt.getAttribute("class").slice("-1").localeCompare((color=='W') ? '1' : '2' )!=0) ? "Ki" : "Q";
         }
     }
     let img = document.createElement("img");
@@ -127,25 +135,61 @@ function InitCasesEvents()
  **************************************************************************************************** 
  ****************************************************************************************************/
 
-function CheckMovementOnBoard(line,col) //Movement doesn't go over the board
+
+function MovedPieceOnCase(eltInit, lineInit, colInit, eltDest, lineDest, colDest ) //move the node img and update Matrix | elt=html div
+{   
+    if (eltDest.firstChild!=null && eltDest.firstChild.tagName.localeCompare("img")!=0) //remove the existant image of piece
+            eltDest.removeChild(eltDest.firstChild);
+    eltDest.appendChild(eltInit.firstChild); //Node img automatically moved to the destination case
+    
+    matrix[lineDest][colDest]=matrix[lineInit][colInit];
+    matrix[lineInit][colInit]="";
+}
+
+ function CheckMovementOnBoard(line,col) //Movement doesn't go over the board
 {   
     return 0<=line && line<8 && 0<=col && col<8;
 }
+
 
 function ResetPieceSelection()
 {   
     currentPiece[0].style.backgroundColor=null;
     Array.from(arrayMov).forEach(elt => document.getElementById("case"+elt[0]+"-"+elt[1]).style.backgroundColor = null);
+    Array.from(arraySpecialMov).forEach(elt => document.getElementById("case"+elt[0]+"-"+elt[1]).style.backgroundColor = null);
     currentPiece=null;
     arrayMov=[];
+    arraySpecialMov=[];
+}
+
+function UpdateRock(namePiece, line, col) //Check if the player still can do a rock after his movement with the piece namePiece from the case [line,col]
+{   
+    if (namePiece.localeCompare("Ki")==0) //the player has moved the king but he was able to do the rock before, so now he cannot
+    {   
+        if (playerTurn==colorP1 && (p1CanRockLeft || p1CanRockRight)) { p1CanRockLeft=false; p1CanRockRight=false; }
+        else if (playerTurn==colorP2 && (p2CanRockLeft || p2CanRockRight)) { p2CanRockLeft=false; p2CanRockRight=false; }
+    }
+    else if (namePiece.localeCompare("R")==0 && ( (playerTurn==colorP1 && (p1CanRockLeft || p1CanRockRight)) || (playerTurn==colorP2 && (p2CanRockLeft || p2CanRockRight)) ) ) 
+    {   //check if it concerns the left or right rook
+        if ((line==0 && col==7) || (line==7 && col==0))//left
+        {   
+            if (playerTurn==colorP1 && p1CanRockLeft) p1CanRockLeft=false;
+            if (playerTurn==colorP2 && p2CanRockLeft) p2CanRockLeft=false;
+        }
+        else if ((line==0 && col==0) || (line==7 && col==7)) //Right
+        {
+            if (playerTurn==colorP1 && p1CanRockRight) p1CanRockRight=false;
+            if (playerTurn==colorP2 && p2CanRockRight) p2CanRockRight=false;
+        }
+    }
 }
 
 function NextTurn()
-{
-    playerTurn=(playerTurn==colorP1) ? colorP2 : colorP1;
+{   
+    if (canNextTurn) playerTurn=(playerTurn==colorP1) ? colorP2 : colorP1;
 }
 
-function CheckPossibleMov(line, col, listMov) //Check if the array[line,col] is contained in listMov
+function CheckMovInList(line, col, listMov) //Check if the array[line,col] is contained in listMov
 {
     if (listMov.length!=0)
     {
@@ -175,7 +219,7 @@ function GetMovementsPawn(line, col)
 
 
 //recursive function
-function GetMovementsRock(line, col, kx, ky) //kx and ky are the coeff | first values are 1 and 0 (down)
+function GetMovementsRook(line, col, kx, ky) //kx and ky are the coeff | first values are 1 and 0 (down)
 {  
     let listMov = new Array();
     while (CheckMovementOnBoard(line+kx, col+ky))
@@ -189,9 +233,9 @@ function GetMovementsRock(line, col, kx, ky) //kx and ky are the coeff | first v
         ky += ky>0 ? 1 : (ky<0 ? -1 : 0);
     }
 
-    if (kx>0) return listMov.concat(GetMovementsRock(line, col, -1, 0)); //up
-    else if (kx<0) return listMov.concat(GetMovementsRock(line, col, 0, 1)) //right
-    else if (ky>0) return listMov.concat(GetMovementsRock(line, col, 0, -1)) //left
+    if (kx>0) return listMov.concat(GetMovementsRook(line, col, -1, 0)); //up
+    else if (kx<0) return listMov.concat(GetMovementsRook(line, col, 0, 1)) //right
+    else if (ky>0) return listMov.concat(GetMovementsRook(line, col, 0, -1)) //left
     else return listMov;
 }
 
@@ -234,7 +278,7 @@ function GetMovementsBishop(line, col, kx, ky) //kx and ky are coeffs | calling 
 
 function GetMovementsQueen(line, col)
 {
-    return (GetMovementsRock(line,col,1,0).concat(GetMovementsBishop(line,col,1,1)));
+    return (GetMovementsRook(line,col,1,0).concat(GetMovementsBishop(line,col,1,1)));
 }
 
 function GetMovementsKing(line,col)
@@ -247,9 +291,56 @@ function GetMovementsKing(line,col)
             if ( (i!=line || j!=col) && CheckMovementOnBoard(i,j) && (matrix[i][j]=="" || matrix[i][j].charAt(0)!=playerTurn))
                 listMov.push([i,j]);
         }
-
     }
     return listMov;
+}
+
+function GetMovementsRock(line,col) //only when player selects the king
+{   
+    let listMov = new Array();
+    //Check if the cases on the left or right are availables (no piece)
+    //Situation changes if queen is on the side of the rock
+
+    if ( ((playerTurn==colorP1 && p1CanRockLeft) || (playerTurn==colorP2 && p2CanRockLeft)) //current player can rock on the left
+        && ( (line==0 && matrix[line][5]=="" && matrix[line][6]=="" && (col==4 ? true : matrix[line][4]=="") ) 
+            || (line==7 && matrix[line][2]=="" && matrix[line][1]=="" && (col==4 ? matrix[line][3]=="" : true)  ) ) ) 
+    {   
+        listMov.push( [line, (line==0 ? (col==4 ?  6 : 5) : (col==4 ?  2 : 1)), "RockLeft"]);
+    }   
+    else if ( ((playerTurn==colorP1 && p1CanRockRight) || (playerTurn==colorP2 && p2CanRockRight)) //current player can rock on the right
+        && ( (line==0 && matrix[line][2]=="" && matrix[line][1]=="" && (col==4 ? matrix[line][3]=="" : true) ) 
+            || (line==7 && matrix[line][5]=="" && matrix[line][6]=="" && (col==4 ? true : matrix[line][4]=="") ) ) ) 
+    {   
+        listMov.push( [line, (line==0 ? (col==4 ?  2 : 1) : (col==4 ?  6 : 5)), "RockRight"]);
+    }
+    return listMov;
+}
+
+
+function DoingSpecialMov(line, col) //line and col represents where the piece goes
+{   
+    let nameMov; //We need to know what's the special mov that the player wants to do
+    let futurCol, initCol;
+    for (let i=0; i<arraySpecialMov.length; i++)
+    {
+        if (arraySpecialMov[i][0]==line && arraySpecialMov[i][1]==col) {nameMov=arraySpecialMov[i][2]; break;}
+    }
+    switch (nameMov)
+    {
+        case ("RockLeft"): //the tower on the left of the king
+            futurCol= (line==0 ? col-1 : col+1);
+            initCol=(line==0 ? 7 : 0); 
+            MovedPieceOnCase(document.getElementById("case"+line+"-"+initCol), line, initCol, document.getElementById("case"+line+"-"+futurCol), line, futurCol);
+            break;
+        case ("RockRight"):
+            initCol=(line==0 ? 0 : 7); 
+            futurCol= (line==0 ? col+1 : col-1);
+            MovedPieceOnCase(document.getElementById("case"+line+"-"+initCol), line, initCol, document.getElementById("case"+line+"-"+futurCol), line, futurCol);
+            break;
+        
+        default:
+            break;
+    }
 }
 
 
@@ -277,7 +368,7 @@ function ClickOnCase(elt, line, col)
                 break;
 
             case ("R"):
-                arrayMov=GetMovementsRock(line,col, 1, 0);
+                arrayMov=GetMovementsRook(line,col, 1, 0);
                 break;
 
             case ("Kn"):
@@ -294,6 +385,7 @@ function ClickOnCase(elt, line, col)
 
             case ("Ki"):
                 arrayMov=GetMovementsKing(line,col);
+                arraySpecialMov=GetMovementsRock(line,col);
                 break;
         }
         if (arrayMov.length!=0) //if there is at least one movement
@@ -301,20 +393,25 @@ function ClickOnCase(elt, line, col)
             // console.log(arrayMov.length);
             Array.from(arrayMov).forEach(val => document.getElementById("case"+val[0]+"-"+val[1]).style.backgroundColor= rgbColorPossibleMov);
         }
+        if (arraySpecialMov.length!=0)
+            Array.from(arraySpecialMov).forEach(val => document.getElementById("case"+val[0]+"-"+val[1]).style.backgroundColor= rgbColorPossibleMov);
         // NextTurn();
     }
 
-    else if (currentPiece!=null && CheckPossibleMov(line, col, arrayMov)) //The player has clicked on a case on which the piece he has selected can go
+    else if (currentPiece!=null && (CheckMovInList(line, col, arrayMov) || CheckMovInList(line, col, arraySpecialMov)) ) //The player has clicked on a case on which the piece he has selected can go
     {   
-        if (elt.firstChild && elt.firstChild.tagName.localeCompare("img")) //remove the existant image of piece
-            elt.removeChild(elt.firstChild);
-        elt.appendChild(currentPiece[0].firstChild); //Node img automatically moved to the destination case
+                        //Init..............................................Dest
+        MovedPieceOnCase(currentPiece[0], currentPiece[1], currentPiece[2], elt, line, col);
+
+        if (CheckMovInList(line, col, arraySpecialMov))
+            DoingSpecialMov(line,col);
         
-        matrix[line][col]=matrix[currentPiece[1]][currentPiece[2]];
-        matrix[currentPiece[1]][currentPiece[2]]="";
         console.log("dest :"+matrix[line][col]);
         console.log("init :"+matrix[currentPiece[1]][currentPiece[2]]);
+
+        UpdateRock(matrix[line][col].slice(1), currentPiece[1], currentPiece[2]);
         ResetPieceSelection();
+        
         NextTurn();
     }
 }
