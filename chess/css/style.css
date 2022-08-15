@@ -8,7 +8,7 @@ header
 {   
     height: 60px;
     background-color:sienna;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
 }
 
 h1.title
@@ -114,4 +114,24 @@ div.case_color2
     z-index: 2;
     background-color: red;
     margin: 3px auto;
+}
+
+
+/*******************************BUTTONS*********************************/
+form.pawn_end
+{
+    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    align-items:center;
+    justify-content: center;
+    /* margin-left: 100px; */
+    visibility: hidden;
+}
+
+input.button_pawn_end
+{
+    background-color:rgb(185, 84, 47);
+    border: solid 2px burlywood;
+    width: 45px;
+    height: 45px;
 }

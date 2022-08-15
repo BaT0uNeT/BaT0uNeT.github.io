@@ -72,6 +72,11 @@ export class Board
         this.#matrix[lineInit][colInit]="";
     }
 
+    SetPieceOnCase(piece, line, col)
+    {
+        this.#matrix[line][col]=piece;
+    }
+
     CheckMovementOnBoard(line,col) //Movement doesn't go over the board
     {   
         return 0<=line && line<8 && 0<=col && col<8;

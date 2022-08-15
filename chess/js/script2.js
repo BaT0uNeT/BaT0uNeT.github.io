@@ -19,7 +19,8 @@ class GameManager
     #state; //0 : select pieces | 1 : player chooses on which case he wants to go
     
     #currentPiece; //cases where the piece can go | [elt, line, col]
-    #pawnMovedOn2Cases; //contains the last pawn which moved 2 cases forward, in order to check PassantCapture
+    #pawnMovedOn2Cases; //contains the last pawn which moved 2 cases forward, in order to check PassantCapture | [elt, line, col]
+    #pawnReachingEnd; //contains the pawn who reached the last line (for the current player) | [elt, line, col]
     #arrayMov; //case on which there is the piece (player clicks on)
     #arraySpecialMov; //for castling or special movement of pawn | [line,col,nameMovement]
 
@@ -39,9 +40,10 @@ class GameManager
         this.#canNextTurn=true;
         this.#colorP1=cP1;
         this.#colorP2=cP2;
-        this.#playerTurn = cP1=='W' ? cP1 : cP2;
+        this.#playerTurn = cP1=='B' ? cP1 : cP2;
         this.#currentPiece=null;
         this.#pawnMovedOn2Cases=null;
+        this.#pawnReachingEnd=null;
         this.#arrayMov=[]; 
         this.#arraySpecialMov=[];
         this.#InitBoard();
@@ -71,10 +73,12 @@ class GameManager
 
     #InitBoard()
     {   
+        this.#InitButton(this.#colorP2, 1);
         this.#InitLine(this.#colorP2, 0);
         this.#InitLine(this.#colorP2, 1);
         this.#InitLine(this.#colorP1, 6);
         this.#InitLine(this.#colorP1, 7);
+        this.#InitButton(this.#colorP1, 0);
     }
     
     /*** Insert all the pieces on the line with the associated color (the one of the player) */
@@ -128,6 +132,29 @@ class GameManager
         elt.appendChild(img);
     }
     
+    #InitButton(color, line)
+    {   
+        let elt;
+        for (let i=0; i<4; i++)
+        {   
+            elt = document.getElementById("button"+line+"-"+i);
+            switch (i)
+            {
+                case (0): //Queen
+                    elt.setAttribute("src", "../img/"+color+"Q.png");
+                    break;
+                case (1): //bishop
+                    elt.setAttribute("src", "../img/"+color+"B.png");
+                    break;
+                case (2): //knight
+                    elt.setAttribute("src", "../img/"+color+"Kn.png");
+                    break;
+                case (3): //rook
+                    elt.setAttribute("src", "../img/"+color+"R.png");
+                    break;
+            }
+        }
+    }
     
     InitCasesEvents()
     {   
@@ -145,13 +172,53 @@ class GameManager
         );
     }
 
+    InitCasesEvents()
+    {   
+        let gm=this;
+        //superficial copy
+        Array.from(document.getElementsByClassName("case_color1")).forEach(elt => elt.addEventListener
+            ("click", function(){
+                gm.#ClickOnCase(elt, elt.getAttribute("id").substr(4, 1), elt.getAttribute("id").slice(-1));
+            })
+        );
+        Array.from(document.getElementsByClassName("case_color2")).forEach(elt => elt.addEventListener
+            ("click", function(){
+                gm.#ClickOnCase(elt, elt.getAttribute("id").substr(4, 1), elt.getAttribute("id").slice(-1));
+            })
+        );
+    }
+
+    InitButtonsEvents() //give to every buttons the function event "click" when a pawn reaches the end
+    {
+        let gm=this;
+        Array.from(document.getElementsByClassName("button_pawn_end")).forEach(elt => elt.addEventListener
+            ("click", function(){
+                if (gm.#pawnReachingEnd!=null)
+                {   
+                    document.getElementsByClassName("pawn_end")[gm.#playerTurn==gm.#colorP2 ? 1 : 0].style.visibility="hidden";
+                    gm.#pawnReachingEnd[0].firstChild.setAttribute("src", elt.getAttribute("src"));
+                    let str=elt.getAttribute("src").split("/")[2].split(".")[0];
+                    console.log(str);
+                    gm.#board.SetPieceOnCase(str, gm.#pawnReachingEnd[1], gm.#pawnReachingEnd[2]);
+                    console.log(gm.#board.GetCaseMatrix(gm.#pawnReachingEnd[1], gm.#pawnReachingEnd[2]))
+                    gm.#pawnReachingEnd=null;
+                    gm.#NextTurn();
+                }
+            })
+        );
+    }
+
     /***************************************************************************************************
      ****************************************GAME FEATURES********************************************** 
     ****************************************************************************************************/
 
     #NextTurn()
     {
-        if (this.#canNextTurn) this.#playerTurn=(this.#playerTurn==this.#colorP1) ? this.#colorP2 : this.#colorP1;
+        if (this.#canNextTurn)
+        {   
+            this.#numberTurns++;
+            this.#playerTurn=(this.#playerTurn==this.#colorP1) ? this.#colorP2 : this.#colorP1;
+        }
     }
 
     #MovedPiece(eltInit, lineInit, colInit, eltDest, lineDest, colDest ) //move the node img and update Matrix | elt=html div
@@ -220,8 +287,19 @@ class GameManager
             this.#pawnMovedOn2Cases=[elt, line, col];
         else
             this.#pawnMovedOn2Cases=null;
-        console.log(this.#currentPiece);
-        console.log(Math.abs(line-this.#currentPiece[1]));
+        // console.log(this.#currentPiece);
+        // console.log(Math.abs(line-this.#currentPiece[1]));
+    }
+
+    #CheckPawnReachedEnd(elt, line, col, currentPlayer)
+    {
+        if (this.#board.GetCaseMatrix(line,col).slice(1)=="P" && (line==0 || line==7))
+        {
+            this.#pawnReachingEnd=[elt, line, col];
+            document.getElementsByClassName("pawn_end")[currentPlayer==this.#colorP2 ? 1 : 0].style.visibility="visible";
+            return true;
+        }
+        return false;
     }
 
     /***************************************************************************************************
@@ -230,6 +308,9 @@ class GameManager
 
     #ClickOnCase(elt, line, col)
     {   
+        if (this.#pawnReachingEnd!=null) //Impossible to click on a case when a pawn hasreached the end (he has to select the replacement piece)
+            return;
+
         line=parseInt(line);
         col=parseInt(col);
 
@@ -291,12 +372,13 @@ class GameManager
             console.log("dest :"+this.#board.GetCaseMatrix(line,col));
             console.log("init :"+this.#board.GetCaseMatrix(this.#currentPiece[1],this.#currentPiece[2]));
             
-            
             this.#UpdatePawnMoved2Cases(elt,line,col);
             this.#board.UpdateCastling(this.#board.GetCaseMatrix(line,col).slice(1), this.#currentPiece[1], this.#currentPiece[2], this.#playerTurn);
             this.#ResetPieceSelection();
             
-            this.#NextTurn();
+            if (!this.#CheckPawnReachedEnd(elt, line, col, this.#playerTurn))
+                // this.#NextTurn();
+                return;
         }
     }
 
@@ -306,4 +388,5 @@ class GameManager
 document.addEventListener('DOMContentLoaded', (event) => {  
     let gm = new GameManager('W','B');
     gm.InitCasesEvents();
+    gm.InitButtonsEvents();
 });
